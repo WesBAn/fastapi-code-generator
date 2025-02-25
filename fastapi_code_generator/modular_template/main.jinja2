@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, responses
 
 from .routers import {{ routers | join(", ") }}
 
@@ -11,6 +11,7 @@ app = FastAPI(
     {{ key }} = {{info_value}},
     {% endfor %}
     {% endif %}
+    default_response_class=responses.ORJSONResponse,
     )
 
 {% for router in routers -%}

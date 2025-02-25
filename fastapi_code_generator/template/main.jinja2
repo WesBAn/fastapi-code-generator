@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, responses
 
 {{imports}}
 
@@ -11,6 +11,7 @@ app = FastAPI(
     {{ key }} = {{info_value}},
     {% endfor %}
     {% endif %}
+    default_response_class=responses.ORJSONResponse,
     )
 
 
@@ -36,5 +37,4 @@ def {{operation.function_name}}({{operation.snake_case_arguments}}) -> {{operati
     {{ operation.summary }}
     """
     {%- endif %}
-    pass
 {% endfor %}

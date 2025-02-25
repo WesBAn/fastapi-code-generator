@@ -4,6 +4,13 @@ from fastapi import APIRouter
 
 from ..dependencies import *
 
+{% for operation in operations %}
+{% if operation.tags[0] == tag %}
+{% set module_path = operation.snake_case_path[1:].replace('/', '_') + '_' + operation.type %}
+from project.core.api import {{module_path}}
+{% endif %}
+{% endfor %}
+
 router = APIRouter(
     tags=['{{tag}}']
     )
@@ -25,12 +32,19 @@ router = APIRouter(
     {% if operation.tags%}
     , tags={{operation.tags}}
     {% endif %})
-def {{operation.function_name}}({{operation.snake_case_arguments}}) -> {{operation.return_type}}:
+async def {{operation.function_name}}({{operation.snake_case_arguments}}) -> {{operation.return_type}}:
     {%- if operation.summary %}
     """
     {{ operation.summary }}
     """
     {%- endif %}
-    pass
+    {% set module_path = operation.snake_case_path[1:].replace('/', '_') + '_' + operation.type -%}
+    await {{module_path}}.handle(
+        {% for argument in operation.arugments_python_list -%}
+           {{ argument.name }} = {{ argument.name }},  
+        {%- endfor %}
+    )
+
+
 {% endif %}
 {% endfor %}

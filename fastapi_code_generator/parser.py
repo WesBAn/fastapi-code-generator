@@ -119,6 +119,7 @@ class Operation(CachedPropertyModel):
     tags: Optional[List[str]] = []
     arguments: str = ''
     snake_case_arguments: str = ''
+    arugments_python_list: List[Argument]
     request: Optional[Argument] = None
     response: str = ''
     additional_responses: Dict[Union[str, int], Dict[str, str]] = {}
@@ -169,7 +170,7 @@ class OpenAPIParser(OpenAPIModelParser):
         target_python_version: PythonVersion = PythonVersion.PY_37,
         dump_resolve_reference_action: Optional[Callable[[Iterable[str]], str]] = None,
         validation: bool = False,
-        field_constraints: bool = False,
+        field_constraints: bool = True,
         snake_case_field: bool = False,
         strip_default_none: bool = False,
         aliases: Optional[Mapping[str, str]] = None,
@@ -233,6 +234,7 @@ class OpenAPIParser(OpenAPIModelParser):
             field_extra_keys=field_extra_keys,
             field_include_all_keys=field_include_all_keys,
             openapi_scopes=[OpenAPIScope.Schemas, OpenAPIScope.Paths],
+            use_annotated=True,
         )
         self.operations: Dict[str, Operation] = {}
         self._temporary_operation: Dict[str, Any] = {}
@@ -472,6 +474,9 @@ class OpenAPIParser(OpenAPIModelParser):
         self._temporary_operation['snake_case_arguments'] = self.get_arguments(
             snake_case=True, path=path
         )
+        self._temporary_operation['arugments_python_list'] = self.get_argument_list(
+            snake_case=True, path=path
+        )
         main_operation = self._temporary_operation
 
         # Handle callbacks. This iterates over callbacks, shifting each one
@@ -504,6 +509,9 @@ class OpenAPIParser(OpenAPIModelParser):
                         )
                         self._temporary_operation['snake_case_arguments'] = (
                             self.get_arguments(snake_case=True, path=cb_path)
+                        )
+                        self._temporary_operation['arugments_python_list'] = (
+                            self.get_argument_list(snake_case=True, path=cb_path)
                         )
 
                         callbacks[key].append(
