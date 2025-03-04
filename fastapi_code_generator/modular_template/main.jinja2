@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, responses
+import http
+import typing
+from collections.abc import Mapping
+
+from fastapi import FastAPI, HTTPException, Request, responses
+from starlette.exceptions import HTTPException as StarletteHttpException
+
+from {{info['title']}}.src.middlewares import app_middleware
 
 from .routers import {{ routers | join(", ") }}
 
@@ -18,6 +25,59 @@ app = FastAPI(
 app.include_router({{router}}.router)
 {% endfor -%}
 
-@app.get("/")
-async def root():
-    return {"message": "Gateway of the App"}
+app.add_middleware(app_middleware.AppMiddleware)
+
+class ExceptionWithCode(StarletteHttpException):
+    def __init__(
+        self,
+        service_code: int,
+        status_code: str | None = None,
+        message: dict[str, typing.Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        self.service_code = service_code
+        self.external_body = {
+            "code": status_code if status_code is not None else str(service_code),
+            "message": (
+                message if message is not None else http.HTTPStatus(service_code).phrase
+            ),
+        }
+
+        self.headers = headers
+
+    def __str__(self) -> str:
+        return f"{self.service_code}: {self.external_body}"
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}(status_code={self.service_code!r}, body={self.external_body!r})"
+
+
+@app.exception_handler(ExceptionWithCode)
+async def app_exception_handler(request: Request, exc: ExceptionWithCode):
+    return responses.ORJSONResponse(
+        status_code=exc.service_code,
+        content=exc.external_body,
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return responses.ORJSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": str(exc.status_code),
+            "message": http.HTTPStatus(exc.status_code).phrase,
+        },
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    return responses.ORJSONResponse(
+        status_code=500,
+        content={"code": "500", "message": "Internal server error"},
+    )
+
