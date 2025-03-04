@@ -3,11 +3,17 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..dependencies import *
+{% if tag == 'ping' %}
+from fastapi.responses import Response
+{% endif %}
 
+{% if tag != 'ping' %}
 from {{info['title']}}.src.dependencies import {{tag}}
+{% endif %}
+
 
 {% for operation in operations %}
-{% if operation.tags[0] == tag %}
+{% if operation.tags[0] == tag and tag != 'ping' %}
 {% set module_path = operation.snake_case_path[1:].replace('/', '_') + '_' + operation.type %}
 from {{info['title']}}.src.api import {{module_path}}
 {% endif %}
@@ -18,7 +24,7 @@ router = APIRouter(
     )
 
 {% for operation in operations %}
-{% if operation.tags[0] == tag %}
+{% if operation.tags[0] == tag and tag != 'ping' %}
 @router.{{operation.type}}('{{operation.snake_case_path}}', response_model={{operation.response}}
     {% if operation.additional_responses %}
         , responses={
@@ -49,6 +55,15 @@ async def {{operation.function_name}}(request_: Request, {{operation.snake_case_
         {%- endfor %}
     )
 
-
+{% endif %}
+{% if operation.tags[0] == tag and tag == 'ping' %}
+@router.{{operation.type}}('{{operation.snake_case_path}}', tags={{operation.tags}})
+async def {{operation.function_name}}() -> {{operation.return_type}}:
+    {%- if operation.summary %}
+    """
+    {{ operation.summary }}
+    """
+    {%- endif %}
+    return Response()
 {% endif %}
 {% endfor %}
