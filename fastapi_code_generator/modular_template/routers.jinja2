@@ -58,7 +58,7 @@ async def {{operation.function_name}}(request_: Request, {{operation.snake_case_
 {% endif %}
 {% if operation.tags[0] == tag and tag == 'ping' %}
 @router.{{operation.type}}('{{operation.snake_case_path}}', tags={{operation.tags}})
-async def {{operation.function_name}}() -> {{operation.return_type}}:
+async def {{operation.function_name}}() -> Response:
     {%- if operation.summary %}
     """
     {{ operation.summary }}
