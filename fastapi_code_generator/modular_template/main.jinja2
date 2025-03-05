@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import http
 import typing
 from collections.abc import Mapping
@@ -8,8 +9,16 @@ from fastapi import FastAPI, HTTPException, Request, responses
 from starlette.exceptions import HTTPException as StarletteHttpException
 
 from {{info['title']}}.src.middlewares import app_middleware
+from {{info['title']}}.src import lifespan as lifespan_lib
 
 from .routers import {{ routers | join(", ") }}
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    app_life_span = lifespan_lib.LifeSpan(app)
+    await app_life_span.on_init()
+    yield
+    await app_life_span.on_shutdown()
 
 app = FastAPI(
     {% if info %}
@@ -19,6 +28,7 @@ app = FastAPI(
     {% endfor %}
     {% endif %}
     default_response_class=responses.ORJSONResponse,
+    lifespan=lifespan,
     )
 
 {% for router in routers -%}
@@ -80,4 +90,3 @@ async def general_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"code": "500", "message": "Internal server error"},
     )
-
