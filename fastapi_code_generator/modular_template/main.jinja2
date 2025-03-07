@@ -5,7 +5,7 @@ import http
 
 from fastapi import FastAPI, HTTPException, Request, responses
 
-from {{info['title']}}.src.middlewares import app_middleware
+from {{info['title']}}.src import middleware
 from {{info['title']}}.src import lifespan as lifespan_lib
 
 from .routers import {{ routers | join(", ") }}
@@ -33,7 +33,7 @@ app = FastAPI(
 app.include_router({{router}}.router)
 {% endfor -%}
 
-app.add_middleware(app_middleware.AppMiddleware)
+app.add_middleware(middleware.AppMiddleware)
 
 @app.exception_handler(base_http_exceptions.ExceptionWithCode)
 async def app_exception_handler(request: Request, exc: base_http_exceptions.ExceptionWithCode):
