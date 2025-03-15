@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import http
 
+import orjson
 from fastapi import FastAPI, HTTPException, Request, responses
 
 from {{info['title']}}.src import middleware
@@ -11,6 +12,18 @@ from {{info['title']}}.src.utils import logging
 
 from .routers import {{ routers | join(", ") }}
 from . import base_http_exceptions
+
+
+async def _request_json_method(self: Request):
+    if not hasattr(self, "_json"):  # pragma: no branch
+        body = await self.body()
+        self._json = orjson.loads(body)
+    return self._json
+
+
+# There is no other solution to make request serialization by orjson
+Request.json = _request_json_method  # type: ignore
+
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
