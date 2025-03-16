@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.responses import Response
 
 from ..dependencies import *
-{% if tag == 'ping' %}
-from fastapi.responses import Response
-{% endif %}
 
 {% if tag != 'ping' %}
 from {{info['title']}}.src.dependencies import {{tag}}
