@@ -40,20 +40,23 @@ router = APIRouter(
     {% if operation.tags%}
     , tags={{operation.tags}}
     {% endif %})
-async def {{operation.function_name}}(request_: Request, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies)) -> {{operation.return_type}}:
+async def {{operation.function_name}}(request_: Request, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies, response: Response)) -> {{operation.return_type}}:
     {%- if operation.summary %}
     """
     {{ operation.summary }}
     """
     {%- endif %}
     {% set module_path = operation.snake_case_path[1:].replace('/', '_') + '_' + operation.type -%}
-    return await {{module_path}}.handle(
-        context=request_.app.state.context,
+    
+    handler = {{module_path}}.Handler(
+        request=request_,
         api_dependency=api_dependency,
+        response=response,
         {% for argument in operation.arugments_python_list -%}
            {{ argument.name }} = {{ argument.name }},  
         {%- endfor %}
     )
+    return await handler.process_request()
 
 {% endif %}
 {% if operation.tags[0] == tag and tag == 'ping' %}
