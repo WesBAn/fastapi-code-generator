@@ -40,7 +40,7 @@ router = APIRouter(
     {% if operation.tags%}
     , tags={{operation.tags}}
     {% endif %})
-async def {{operation.function_name}}(request_: Request, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies, response: Response)) -> {{operation.return_type}}:
+async def {{operation.function_name}}(request_: Request, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies), response: Response) -> {{operation.return_type}}:
     {%- if operation.summary %}
     """
     {{ operation.summary }}
