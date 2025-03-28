@@ -49,6 +49,7 @@ async def {{operation.function_name}}(request_: Request, response: Response, {{o
     handler = {{module_path}}.Handler(
         request=request_,
         api_dependency=api_dependency,
+        components=request_.app.state.components,
         response=response,
         {% for argument in operation.arugments_python_list -%}
            {{ argument.name }} = {{ argument.name }},  
