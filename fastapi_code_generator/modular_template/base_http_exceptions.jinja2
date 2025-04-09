@@ -4,9 +4,7 @@ import http
 import typing
 from collections.abc import Mapping
 
-from starlette.exceptions import HTTPException as StarletteHttpException
-
-class ExceptionWithCode(StarletteHttpException):
+class ExceptionWithCode(Exception):
     def __init__(
         self,
         service_code: int,
