@@ -5,6 +5,8 @@ import http
 
 import orjson
 from fastapi import FastAPI, HTTPException, Request, responses
+from fastapi.exceptions import RequestValidationError
+
 
 from {{info['title']}}.src import middleware
 from {{info['title']}}.src import lifespan as lifespan_lib
@@ -67,6 +69,15 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "message": http.HTTPStatus(exc.status_code).phrase,
         },
         headers=exc.headers,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def http_exception_handler_some(
+    request: Request, exc: RequestValidationError
+):
+    return responses.ORJSONResponse(
+        status_code=400, content={"code": "400", "message": str(exc.errors())}
     )
 
 
