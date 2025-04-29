@@ -9,7 +9,7 @@ class ExceptionWithCode(Exception):
         self,
         service_code: int,
         status_code: str | None = None,
-        message: dict[str, typing.Any] | None = None,
+        message: str | None = None,
         headers: Mapping[str, str] | None = None,
     ) -> None:
         self.service_code = service_code

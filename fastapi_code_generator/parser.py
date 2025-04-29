@@ -30,10 +30,15 @@ from datamodel_code_generator import (
 from datamodel_code_generator.imports import Import, Imports
 from datamodel_code_generator.model import DataModel, DataModelFieldBase
 from datamodel_code_generator.model import pydantic as pydantic_model
-from datamodel_code_generator.model.pydantic import CustomRootType, DataModelField
+from datamodel_code_generator.model.pydantic import (
+    CustomRootType,
+    DataModelField,
+)
 from datamodel_code_generator.parser.jsonschema import JsonSchemaObject
 from datamodel_code_generator.parser.openapi import MediaObject
-from datamodel_code_generator.parser.openapi import OpenAPIParser as OpenAPIModelParser
+from datamodel_code_generator.parser.openapi import (
+    OpenAPIParser as OpenAPIModelParser,
+)
 from datamodel_code_generator.parser.openapi import (
     ParameterLocation,
     ParameterObject,
@@ -41,7 +46,11 @@ from datamodel_code_generator.parser.openapi import (
     RequestBodyObject,
     ResponseObject,
 )
-from datamodel_code_generator.types import DataType, DataTypeManager, StrictTypes
+from datamodel_code_generator.types import (
+    DataType,
+    DataTypeManager,
+    StrictTypes,
+)
 from datamodel_code_generator.util import cached_property
 from pydantic import BaseModel, ValidationInfo
 
@@ -162,13 +171,19 @@ class OpenAPIParser(OpenAPIModelParser):
         *,
         data_model_type: Type[DataModel] = pydantic_model.BaseModel,
         data_model_root_type: Type[DataModel] = pydantic_model.CustomRootType,
-        data_type_manager_type: Type[DataTypeManager] = pydantic_model.DataTypeManager,
-        data_model_field_type: Type[DataModelFieldBase] = pydantic_model.DataModelField,
+        data_type_manager_type: Type[
+            DataTypeManager
+        ] = pydantic_model.DataTypeManager,
+        data_model_field_type: Type[
+            DataModelFieldBase
+        ] = pydantic_model.DataModelField,
         base_class: Optional[str] = None,
         custom_template_dir: Optional[pathlib.Path] = None,
         extra_template_data: Optional[DefaultDict[str, Dict[str, Any]]] = None,
         target_python_version: PythonVersion = PythonVersion.PY_37,
-        dump_resolve_reference_action: Optional[Callable[[Iterable[str]], str]] = None,
+        dump_resolve_reference_action: Optional[
+            Callable[[Iterable[str]], str]
+        ] = None,
         validation: bool = False,
         field_constraints: bool = True,
         snake_case_field: bool = False,
@@ -294,7 +309,8 @@ class OpenAPIParser(OpenAPIModelParser):
         field = DataModelField(
             name=name,
             data_type=data_type,
-            required=parameters.required or parameters.in_ == ParameterLocation.path,
+            required=parameters.required
+            or parameters.in_ == ParameterLocation.path,
         )
 
         if orig_name != name:
@@ -320,10 +336,13 @@ class OpenAPIParser(OpenAPIModelParser):
 
     def get_arguments(self, snake_case: bool, path: List[str]) -> str:
         return ", ".join(
-            argument.argument for argument in self.get_argument_list(snake_case, path)
+            argument.argument
+            for argument in self.get_argument_list(snake_case, path)
         )
 
-    def get_argument_list(self, snake_case: bool, path: List[str]) -> List[Argument]:
+    def get_argument_list(
+        self, snake_case: bool, path: List[str]
+    ) -> List[Argument]:
         arguments: List[Argument] = []
 
         parameters = self._temporary_operation.get('_parameters')
@@ -341,7 +360,11 @@ class OpenAPIParser(OpenAPIModelParser):
 
         positional_argument: bool = False
         for argument in arguments:
-            if positional_argument and argument.required and argument.default is None:
+            if (
+                positional_argument
+                and argument.required
+                and argument.default is None
+            ):
                 argument.default = UsefulStr('...')
             positional_argument = (
                 argument.required
@@ -369,7 +392,9 @@ class OpenAPIParser(OpenAPIModelParser):
                 # TODO: support other content-types
                 if RE_APPLICATION_JSON_PATTERN.match(media_type):
                     if isinstance(media_obj.schema_, ReferenceObject):
-                        data_type = self.get_ref_data_type(media_obj.schema_.ref)
+                        data_type = self.get_ref_data_type(
+                            media_obj.schema_.ref
+                        )
                     else:
                         data_type = self.parse_schema(
                             name, media_obj.schema_, [*path, media_type]
@@ -418,7 +443,9 @@ class OpenAPIParser(OpenAPIModelParser):
                     self.imports_for_fastapi.append(
                         Import.from_full_path("fastapi.UploadFile")
                     )
-        self._temporary_operation['_request'] = arguments[0] if arguments else None
+        self._temporary_operation['_request'] = (
+            arguments[0] if arguments else None
+        )
 
     def parse_responses(  # type: ignore[override]
         self,
@@ -439,14 +466,16 @@ class OpenAPIParser(OpenAPIModelParser):
         self._temporary_operation['response'] = type_hint
         return_types = {type_hint: data_type}
         for status_code, additional_responses in data_types.items():
-            if status_code != '200' and additional_responses:  # 200 is processed above
+            if (
+                status_code != '200' and additional_responses
+            ):  # 200 is processed above
                 data_type = list(additional_responses.values())[0]
                 if data_type:
                     self.data_types.append(data_type)
                 type_hint = data_type.type_hint  # TODO: change to lazy loading
-                self._temporary_operation.setdefault('additional_responses', {})[
-                    status_code
-                ] = {'model': type_hint}
+                self._temporary_operation.setdefault(
+                    'additional_responses', {}
+                )[status_code] = {'model': type_hint}
                 return_types[type_hint] = data_type
         if len(return_types) == 1:
             return_type = next(iter(return_types.values()))
@@ -474,8 +503,8 @@ class OpenAPIParser(OpenAPIModelParser):
         self._temporary_operation['snake_case_arguments'] = self.get_arguments(
             snake_case=True, path=path
         )
-        self._temporary_operation['arugments_python_list'] = self.get_argument_list(
-            snake_case=True, path=path
+        self._temporary_operation['arugments_python_list'] = (
+            self.get_argument_list(snake_case=True, path=path)
         )
         main_operation = self._temporary_operation
 
@@ -504,14 +533,16 @@ class OpenAPIParser(OpenAPIModelParser):
                         self._temporary_operation = {'_parameters': []}
                         cb_path = path + ['callbacks', key, route, method]
                         super().parse_operation(cb_op, cb_path)
-                        self._temporary_operation['arguments'] = self.get_arguments(
-                            snake_case=False, path=cb_path
+                        self._temporary_operation['arguments'] = (
+                            self.get_arguments(snake_case=False, path=cb_path)
                         )
                         self._temporary_operation['snake_case_arguments'] = (
                             self.get_arguments(snake_case=True, path=cb_path)
                         )
                         self._temporary_operation['arugments_python_list'] = (
-                            self.get_argument_list(snake_case=True, path=cb_path)
+                            self.get_argument_list(
+                                snake_case=True, path=cb_path
+                            )
                         )
 
                         callbacks[key].append(
