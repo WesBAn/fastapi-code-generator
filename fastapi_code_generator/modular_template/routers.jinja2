@@ -1,7 +1,7 @@
 # type: ignore
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import Response
 
 from ..dependencies import *
@@ -39,7 +39,7 @@ router = APIRouter(
     {% if operation.tags%}
     , tags={{operation.tags}}
     {% endif %})
-async def {{operation.function_name}}(request_: Request, response: Response, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies),) -> {{operation.return_type}}:
+async def {{operation.function_name}}(request_: Request, background_tasks: BackgroundTasks, response: Response, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies),) -> {{operation.return_type}}:
     {%- if operation.summary %}
     """
     {{ operation.summary }}
@@ -50,6 +50,7 @@ async def {{operation.function_name}}(request_: Request, response: Response, {{o
     handler = {{module_path}}.Handler(
         request=request_,
         api_dependency=api_dependency,
+        background_tasks=background_tasks,
         components=request_.app.state.components,
         response=response,
         {% for argument in operation.arugments_python_list -%}
