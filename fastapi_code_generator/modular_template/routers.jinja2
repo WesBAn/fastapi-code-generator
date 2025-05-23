@@ -39,6 +39,7 @@ router = APIRouter(
     {% if operation.tags%}
     , tags={{operation.tags}}
     {% endif %})
+    , response_model_exclude_none=True
 async def {{operation.function_name}}(request_: Request, background_tasks: BackgroundTasks, response: Response, {{operation.snake_case_arguments + ',' if operation.snake_case_arguments != '' else '' }} api_dependency=Depends({{tag if tag else 'invalid'}}.get_dependencies),) -> {{operation.return_type}}:
     {%- if operation.summary %}
     """
