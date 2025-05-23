@@ -76,8 +76,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def http_exception_handler_some(
     request: Request, exc: RequestValidationError
 ):
+    logging.logger.warning('Invalid request data provided, details: {}', str(exc.errors()))
     return responses.ORJSONResponse(
-        status_code=400, content={"code": "400", "message": str(exc.errors())}
+        status_code=400, content={"code": "400", "message": "Bad Request"}
     )
 
 
