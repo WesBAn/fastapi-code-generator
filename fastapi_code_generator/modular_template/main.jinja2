@@ -51,8 +51,39 @@ app.include_router({{router}}.router)
 
 app.add_middleware(middleware.AppMiddleware)
 
+
+def _get_common_response_tags(
+    *, request: Request, service_code: int, body: dict | str | None
+) -> dict:
+    return {
+        "http_method": request.method,
+        "type": "response",
+        "uri": request.url,
+        "meta_type": request.url.path,
+        "meta_code": service_code,
+        "body": body,
+    }
+
+
+def _process_exc_response_logs(request: Request, service_code: int, body: dict | str | None):
+    if 500 <= service_code:
+        logging.logger.error(
+            "[Processing response failed]",
+            **_get_common_response_tags(request=request, service_code=service_code, body=body),
+        )
+    else:
+        logging.logger.info(
+            "[Processed response]",
+            **_get_common_response_tags(request=request, service_code=service_code, body=body),
+        )
+
+
 @app.exception_handler(base_http_exceptions.ExceptionWithCode)
 async def app_exception_handler(request: Request, exc: base_http_exceptions.ExceptionWithCode):
+    _process_exc_response_logs(
+        request=request, service_code=exc.service_code, body=exc.external_body
+    )
+
     return responses.ORJSONResponse(
         status_code=exc.service_code,
         content=exc.external_body,
@@ -62,29 +93,36 @@ async def app_exception_handler(request: Request, exc: base_http_exceptions.Exce
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    body = {
+        "code": str(exc.status_code),
+        "message": http.HTTPStatus(exc.status_code).phrase,
+    }
+    _process_exc_response_logs(request=request, service_code=exc.status_code, body=body)
+
     return responses.ORJSONResponse(
         status_code=exc.status_code,
-        content={
-            "code": str(exc.status_code),
-            "message": http.HTTPStatus(exc.status_code).phrase,
-        },
+        content=body,
         headers=exc.headers,
     )
 
 
 @app.exception_handler(RequestValidationError)
-async def http_exception_handler_some(
-    request: Request, exc: RequestValidationError
-):
-    logging.logger.warning('Invalid request data provided, details: {}', str(exc.errors()))
-    return responses.ORJSONResponse(
-        status_code=400, content={"code": "400", "message": "Bad Request"}
-    )
+async def http_exception_handler_some(request: Request, exc: RequestValidationError):
+    SERVICE_CODE = 400
+    BODY = {"code": "400", "message": "Bad Request"}
+
+    logging.logger.info("Invalid request data provided, details: {}", str(exc.errors()))
+    _process_exc_response_logs(request=request, service_code=SERVICE_CODE, body=BODY)
+    return responses.ORJSONResponse(status_code=SERVICE_CODE, content=BODY)
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    SERVICE_CODE = 500
+    BODY = {"code": "500", "message": "Internal server error"}
+
+    _process_exc_response_logs(request=request, service_code=SERVICE_CODE, body=BODY)
     return responses.ORJSONResponse(
-        status_code=500,
-        content={"code": "500", "message": "Internal server error"},
+        status_code=SERVICE_CODE,
+        content=BODY,
     )
