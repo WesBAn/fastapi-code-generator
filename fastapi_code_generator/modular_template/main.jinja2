@@ -6,6 +6,7 @@ import http
 import orjson
 from fastapi import FastAPI, HTTPException, Request, responses
 from fastapi.exceptions import RequestValidationError
+from starlette import exceptions as starlette_exc
 
 
 from {{info['title']}}.src import middleware
@@ -90,6 +91,15 @@ async def app_exception_handler(request: Request, exc: base_http_exceptions.Exce
         headers=exc.headers,
     )
 
+@app.exception_handler(RequestValidationError)
+async def http_exception_handler_some(request: Request, exc: RequestValidationError):
+    SERVICE_CODE = 400
+    BODY = {"code": "400", "message": "Bad Request"}
+
+    logging.logger.info("Invalid request data provided, details: {}", str(exc.errors()))
+    _process_exc_response_logs(request=request, service_code=SERVICE_CODE, body=BODY)
+    return responses.ORJSONResponse(status_code=SERVICE_CODE, content=BODY)
+
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -106,14 +116,19 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-@app.exception_handler(RequestValidationError)
-async def http_exception_handler_some(request: Request, exc: RequestValidationError):
-    SERVICE_CODE = 400
-    BODY = {"code": "400", "message": "Bad Request"}
+@app.exception_handler(starlette_exc.HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    body = {
+        "code": str(exc.status_code),
+        "message": http.HTTPStatus(exc.status_code).phrase,
+    }
+    _process_exc_response_logs(request=request, service_code=exc.status_code, body=body)
 
-    logging.logger.info("Invalid request data provided, details: {}", str(exc.errors()))
-    _process_exc_response_logs(request=request, service_code=SERVICE_CODE, body=BODY)
-    return responses.ORJSONResponse(status_code=SERVICE_CODE, content=BODY)
+    return responses.ORJSONResponse(
+        status_code=exc.status_code,
+        content=body,
+        headers=exc.headers,
+    )
 
 
 @app.exception_handler(Exception)
